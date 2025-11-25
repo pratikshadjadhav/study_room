@@ -1,17 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  lazy,
+  Suspense,
+} from "react";
 import Sidebar from "./components/layout/Sidebar.jsx";
 import MobileNav from "./components/layout/MobileNav.jsx";
-import DashboardView from "./views/DashboardView.jsx";
-import StudentsView from "./views/StudentsView.jsx";
-import SeatManagerView from "./views/SeatManagerView.jsx";
-import PaymentsView from "./views/PaymentsView.jsx";
-import SettingsView from "./views/SettingsView.jsx";
-import ExpensesView from "./views/ExpensesView.jsx";
-import AdmissionsView from "./views/AdmissionsView.jsx";
-import ReportsView from "./views/ReportsView.jsx";
-import RenewalsView from "./views/RenewalsView.jsx";
-import HistoryView from "./views/HistoryView.jsx";
-import OnboardingPage from "./views/OnboardingPage.jsx";
 import LoadingState from "./components/common/LoadingState.jsx";
 import ErrorBanner from "./components/common/ErrorBanner.jsx";
 import Toast from "./components/common/Toast.jsx";
@@ -25,6 +21,18 @@ import LoginView from "./views/LoginView.jsx";
 import { createApiClient } from "./lib/apiClient.js";
 import { VIEW_LABELS, ALL_VIEW_IDS } from "./constants/views.js";
 import { supabase } from "./lib/supabaseBrowser.js";
+
+const DashboardView = lazy(() => import("./views/DashboardView.jsx"));
+const StudentsView = lazy(() => import("./views/StudentsView.jsx"));
+const SeatManagerView = lazy(() => import("./views/SeatManagerView.jsx"));
+const PaymentsView = lazy(() => import("./views/PaymentsView.jsx"));
+const SettingsView = lazy(() => import("./views/SettingsView.jsx"));
+const ExpensesView = lazy(() => import("./views/ExpensesView.jsx"));
+const AdmissionsView = lazy(() => import("./views/AdmissionsView.jsx"));
+const ReportsView = lazy(() => import("./views/ReportsView.jsx"));
+const RenewalsView = lazy(() => import("./views/RenewalsView.jsx"));
+const HistoryView = lazy(() => import("./views/HistoryView.jsx"));
+const OnboardingPage = lazy(() => import("./views/OnboardingPage.jsx"));
 
 const CURRENCY = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -778,7 +786,8 @@ function App() {
     }
 
     return (
-      <div className="space-y-6">
+      <Suspense fallback={<LoadingState message="Loading section…" />}>
+        <div className="space-y-6">
         <ErrorBanner message={error} />
         {canAccessView("dashboard") && activeView === "dashboard" && (
           <DashboardView
@@ -859,12 +868,17 @@ function App() {
             onDeleteCategory={handleDeleteCategory}
           />
         )}
-      </div>
+        </div>
+      </Suspense>
     );
   };
 
   if (isOnboardingPage) {
-    return <OnboardingPage />;
+    return (
+      <Suspense fallback={<LoadingState message="Loading enrollment form…" />}>
+        <OnboardingPage />
+      </Suspense>
+    );
   }
 
   

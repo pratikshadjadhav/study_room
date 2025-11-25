@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, memo } from "react";
 import LucideIcon from "../components/icons/LucideIcon.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabaseBrowser.js";
@@ -1645,4 +1645,4 @@ function SettingsView({
   );
 }
 
-export default SettingsView;
+export default memo(SettingsView);
