@@ -14,6 +14,20 @@ const feeTypeMap = {
   },
 };
 
+const formatRegistrationSource = (source, role) => {
+  if (!source) return role || "—";
+  switch (source) {
+    case "qr_self":
+      return "QR Self-Enroll";
+    case "admin_panel":
+      return role ? `Admin • ${role}` : "Admin Panel";
+    case "staff":
+      return role ? `Staff • ${role}` : "Staff";
+    default:
+      return role || source;
+  }
+};
+
 function StudentsView({
   students,
   seats,
@@ -129,6 +143,10 @@ function StudentsView({
       ? roleMap.get(lastPayment.collected_role_id)
       : null;
     const hasAnyActions = canEditStudent || canLogPayment || canToggleStatus;
+    const registrationLabel = formatRegistrationSource(
+      student.registration_source,
+      student.registered_by_role
+    );
 
     return (
       <tr key={student.id} className="hover:bg-slate-50/70">
@@ -170,6 +188,12 @@ function StudentsView({
             {student.join_date
               ? new Date(student.join_date).toLocaleDateString()
               : "—"}
+          </p>
+        </td>
+        <td className="px-4 py-3 text-sm text-slate-600">
+          {registrationLabel}
+          <p className="text-xs text-slate-400">
+            {student.registration_paid ? "Reg. paid" : "Reg. pending"}
           </p>
         </td>
         <td className="px-4 py-3">
@@ -394,6 +418,7 @@ function StudentsView({
                   <th className="px-4 py-3 text-left">Contact</th>
                   <th className="px-4 py-3 text-left">Plan</th>
                   <th className="px-4 py-3 text-left">Seat</th>
+                  <th className="px-4 py-3 text-left">Registered Via</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Payments</th>
                   <th className="px-4 py-3 text-right">Actions</th>
@@ -443,6 +468,7 @@ function StudentsView({
                   <th className="px-4 py-3 text-left">Contact</th>
                   <th className="px-4 py-3 text-left">Plan</th>
                   <th className="px-4 py-3 text-left">Seat</th>
+                  <th className="px-4 py-3 text-left">Registered Via</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Payments</th>
                   <th className="px-4 py-3 text-right">Actions</th>

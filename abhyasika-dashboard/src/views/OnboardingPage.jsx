@@ -128,9 +128,9 @@ function OnboardingPage() {
 
     try {
       setSubmitting(true);
-    await api.createStudent({
-      name: form.name.trim(),
-      phone: phoneDigits,
+      await api.createStudent({
+        name: form.name.trim(),
+        phone: phoneDigits,
         email: form.email.trim(),
         gender: form.gender,
         aadhaar: aadhaarDigits,
@@ -144,8 +144,10 @@ function OnboardingPage() {
         fee_cycle: form.billingCycle,
         limited_days:
           form.planType === "limited" ? Number(form.limitedDays) || null : null,
-      registration_paid: form.registrationPaid,
+        registration_paid: form.registrationPaid,
         join_date: form.joinDate,
+        registration_source: "qr_self",
+        registered_by_role: "Self",
       });
       setStatus({
         tone: "success",

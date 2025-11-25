@@ -142,6 +142,8 @@ export function createApiClient() {
         current_plan_id: payload.current_plan_id ?? null,
         current_seat_id: payload.current_seat_id ?? null,
         renewal_date: payload.renewal_date ?? null,
+        registration_source: payload.registration_source ?? "admin_panel",
+        registered_by_role: payload.registered_by_role ?? null,
       };
 
       const result = await supabase.from("students").insert(insertPayload).select("*").single();

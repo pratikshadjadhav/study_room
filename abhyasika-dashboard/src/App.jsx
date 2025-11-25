@@ -377,8 +377,19 @@ function App() {
     try {
       setError("");
       const audit = getAuditContext();
+      const registeringRole =
+        roles.find((role) => assignedRoleIds.includes(role.id))?.name ||
+        audit.actor_role ||
+        "Admin";
       const { initialPayment, ...studentPayload } = formData;
-      const created = await api.createStudent({ ...studentPayload, audit });
+      const created = await api.createStudent({
+        ...studentPayload,
+        registration_source:
+          studentPayload.registration_source || "admin_panel",
+        registered_by_role:
+          studentPayload.registered_by_role || registeringRole,
+        audit,
+      });
       setStudents((prev) =>
         [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
       );
