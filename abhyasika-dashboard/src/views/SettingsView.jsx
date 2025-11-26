@@ -125,6 +125,19 @@ function SettingsView({
       [key]: !prev[key],
     }));
 
+  const seatStats = useMemo(() => {
+    const total = seats.length;
+    const available = seats.filter((seat) => seat.status === "available").length;
+    const maintenance = seats.filter(
+      (seat) => seat.status === "maintenance"
+    ).length;
+    return {
+      total,
+      available,
+      maintenance,
+    };
+  }, [seats]);
+
   const generateSignedLogoUrl = async (path) => {
     if (!path) return "";
     const { data, error } = await supabase.storage
@@ -661,32 +674,83 @@ function SettingsView({
 
   return (
     <div className="space-y-6">
-      {/* <div className="rounded-3xl border border-slate-100 bg-gradient-to-br from-indigo-50 via-white to-pink-50 p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-[32px] border border-transparent bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6 text-white shadow-xl shadow-indigo-100">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-wide text-indigo-500">
+            <p className="text-xs uppercase tracking-[0.4em] text-white/60">
               Control Center
             </p>
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">
               Workspace Settings
             </h1>
-            <p className="text-sm text-slate-500">
-              Customize notifications, automation, and appearance preferences.
+            <p className="mt-2 text-sm text-white/80">
+              Personalize admissions, automation, and seat operations without leaving the dashboard.
             </p>
           </div>
-          <div className="flex gap-2 rounded-2xl border border-white/50 bg-white/70 px-4 py-2 shadow">
-            <LucideIcon name="badgeCheck" className="h-5 w-5 text-emerald-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Status: Synced
-              </p>
-              <p className="text-xs text-slate-500">
-                Last backup 5 minutes ago
-              </p>
-            </div>
+          <div className="rounded-3xl bg-white/15 px-4 py-3 backdrop-blur">
+            <p className="text-sm font-semibold text-white">
+              {admin?.name || "Admin Workspace"}
+            </p>
+            <p className="text-xs text-white/70">Last synced moments ago</p>
+            <button
+              type="button"
+              onClick={() => toggleSection("profile")}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-white"
+            >
+              <LucideIcon name="sparkles" className="h-4 w-4" />
+              Update profile
+            </button>
           </div>
         </div>
-      </div> */}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "Total seats",
+            value: seatStats.total,
+            icon: "layoutGrid",
+            tone: "from-slate-100 to-slate-50 text-slate-900",
+            sub: `${seatStats.available} available`,
+          },
+          {
+            label: "Maintenance",
+            value: seatStats.maintenance,
+            icon: "wrench",
+            tone: "from-amber-100 to-orange-50 text-amber-800",
+            sub: "Temporarily offline",
+          },
+          {
+            label: "Active roles",
+            value: roles.length,
+            icon: "shieldCheck",
+            tone: "from-emerald-100 to-emerald-50 text-emerald-800",
+            sub: "Team permission sets",
+          },
+          {
+            label: "Expense tags",
+            value: expenseCategories.length,
+            icon: "tag",
+            tone: "from-sky-100 to-sky-50 text-sky-800",
+            sub: "Classified categories",
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-2xl border border-white/70 bg-gradient-to-br ${card.tone} p-4 shadow-sm`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                {card.label}
+              </p>
+              <LucideIcon name={card.icon} className="h-4 w-4" />
+            </div>
+            <p className="mt-3 text-3xl font-semibold">{card.value}</p>
+            <p className="text-xs text-slate-600">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
       <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
         <button
           type="button"

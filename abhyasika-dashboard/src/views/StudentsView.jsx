@@ -44,6 +44,7 @@ function StudentsView({
   const [planFilter, setPlanFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [isCompact, setIsCompact] = useState(false);
   const canCreateStudent = hasPermission("students", "add");
   const canEditStudent = hasPermission("students", "edit");
   const canToggleStatus = hasPermission("students", "delete");
@@ -128,12 +129,23 @@ function StudentsView({
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
+  useEffect(() => {
+    const updateCompact = () => {
+      if (typeof window !== "undefined") {
+        setIsCompact(window.innerWidth < 1024);
+      }
+    };
+    updateCompact();
+    window.addEventListener("resize", updateCompact);
+    return () => window.removeEventListener("resize", updateCompact);
+  }, []);
+
   const activeOnly = useMemo(
     () => filtered.filter((student) => student.is_active),
     [filtered]
   );
 
-  const renderRow = (student, index, baseIndex = 0) => {
+  const renderDesktopRow = (student, index, baseIndex = 0) => {
     const seat = seatMap.get(student.current_seat_id);
     const plan = planMap.get(student.current_plan_id);
     const busy = busyIds.includes(student.id);
@@ -285,6 +297,148 @@ function StudentsView({
     );
   };
 
+  const renderMobileCard = (student, index, baseIndex = 0) => {
+    const seat = seatMap.get(student.current_seat_id);
+    const plan = planMap.get(student.current_plan_id);
+    const lastPayment = latestPaymentByStudent.get(student.id);
+    const collectorRole = lastPayment
+      ? roleMap.get(lastPayment.collected_role_id)
+      : null;
+    const registrationLabel = formatRegistrationSource(
+      student.registration_source,
+      student.registered_by_role
+    );
+    const hasAnyActions = canEditStudent || canLogPayment || canToggleStatus;
+    const busy = busyIds.includes(student.id);
+
+    return (
+      <div
+        key={`card-${student.id}`}
+        className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              #{baseIndex + index + 1}
+            </p>
+            <p className="text-base font-semibold text-slate-900">
+              {student.name}
+            </p>
+            <p className="text-xs text-slate-500">{student.email || "No email"}</p>
+            <p className="text-xs text-slate-500">{student.phone || "—"}</p>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              student.is_active
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {student.is_active ? "Active" : "Inactive"}
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 text-xs text-slate-600">
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+            <span className="font-semibold text-slate-900">Plan</span>
+            <span className="text-right">
+              {plan ? plan.name : "Not set"}
+              <span className="block text-[11px] text-slate-400">
+                {student.fee_cycle === "rolling"
+                  ? "Rolling 30 days"
+                  : student.fee_plan_type === "limited"
+                  ? `${student.limited_days || plan?.duration_days || 0} days`
+                  : "Calendar month"}
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+            <span className="font-semibold text-slate-900">Seat</span>
+            <span className="text-right">
+              {seat ? seat.seat_number : "Unassigned"}
+              <span className="block text-[11px] text-slate-400">
+                Joined{" "}
+                {student.join_date
+                  ? new Date(student.join_date).toLocaleDateString()
+                  : "—"}
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+            <span className="font-semibold text-slate-900">Registered via</span>
+            <span className="text-right">{registrationLabel}</span>
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+            <span className="font-semibold text-slate-900">Payments</span>
+            <span className="text-right">
+              {lastPayment
+                ? `${lastPayment.payment_mode === "cash" ? "Cash" : "UPI"}`
+                : "No payments"}
+              <span className="block text-[11px] text-slate-400">
+                {lastPayment
+                  ? collectorRole?.name ?? "Role not tagged"
+                  : null}
+              </span>
+            </span>
+          </div>
+        </div>
+        {hasAnyActions ? (
+          <div className="mt-3 flex items-center justify-end">
+            <button
+              onClick={() =>
+                setOpenMenuId((prev) => (prev === student.id ? null : student.id))
+              }
+              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+            >
+              Actions
+              <LucideIcon name="chevronDown" className="ml-1 h-4 w-4" />
+            </button>
+            {openMenuId === student.id ? (
+              <div className="absolute z-20 mt-2 w-44 rounded-2xl border border-slate-100 bg-white p-2 text-sm shadow-lg">
+                {canEditStudent ? (
+                  <button
+                    onClick={() => {
+                      onOpenModal("editStudent", { student });
+                      setOpenMenuId(null);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <LucideIcon name="UserSquare" className="h-4 w-4" />
+                    View / Edit
+                  </button>
+                ) : null}
+                {canLogPayment ? (
+                  <button
+                    onClick={() => {
+                      onOpenModal("logPayment", { student });
+                      setOpenMenuId(null);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-slate-600 transition hover:bg-slate-50"
+                  >
+                    <LucideIcon name="CreditCard" className="h-4 w-4" />
+                    Log Payment
+                  </button>
+                ) : null}
+                {canToggleStatus ? (
+                  <button
+                    onClick={() => {
+                      onToggleActive(student.id);
+                      setOpenMenuId(null);
+                    }}
+                    disabled={busy}
+                    className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <LucideIcon name="Power" className="h-4 w-4" />
+                    {student.is_active ? "Deactivate" : "Activate"}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -406,40 +560,56 @@ function StudentsView({
               {activeOnly.length} active
             </span>
           </div>
-          <div
-            className="overflow-x-auto rounded-2xl border border-slate-100"
-            style={{ scrollbarWidth: "thin" }}
-          >
-            <table className="min-w-[1100px] w-full table-auto divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">#</th>
-                  <th className="px-4 py-3 text-left">Student</th>
-                  <th className="px-4 py-3 text-left">Contact</th>
-                  <th className="px-4 py-3 text-left">Plan</th>
-                  <th className="px-4 py-3 text-left">Seat</th>
-                  <th className="px-4 py-3 text-left">Registered Via</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Payments</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {activeOnly.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-6 text-center text-sm text-slate-500"
-                    >
-                      No active students match the current filters.
-                    </td>
-                  </tr>
-                ) : (
-                  activeOnly.map((student, index) => renderRow(student, index, 0))
+          {isCompact ? (
+            activeOnly.length === 0 ? (
+              <p className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                No active students match the current filters.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {activeOnly.map((student, index) =>
+                  renderMobileCard(student, index, 0)
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            )
+          ) : (
+            <div
+              className="overflow-x-auto rounded-2xl border border-slate-100"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              <table className="min-w-[1100px] w-full table-auto divide-y divide-slate-100 text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">#</th>
+                    <th className="px-4 py-3 text-left">Student</th>
+                    <th className="px-4 py-3 text-left">Contact</th>
+                    <th className="px-4 py-3 text-left">Plan</th>
+                    <th className="px-4 py-3 text-left">Seat</th>
+                    <th className="px-4 py-3 text-left">Registered Via</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Payments</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activeOnly.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="px-4 py-6 text-center text-sm text-slate-500"
+                      >
+                        No active students match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    activeOnly.map((student, index) =>
+                      renderDesktopRow(student, index, 0)
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
@@ -456,42 +626,56 @@ function StudentsView({
               {filtered.length} total
             </span>
           </div>
-          <div
-            className="overflow-x-auto rounded-2xl border border-slate-100"
-            style={{ scrollbarWidth: "thin" }}
-          >
-            <table className="min-w-[1100px] w-full table-auto divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">#</th>
-                  <th className="px-4 py-3 text-left">Student</th>
-                  <th className="px-4 py-3 text-left">Contact</th>
-                  <th className="px-4 py-3 text-left">Plan</th>
-                  <th className="px-4 py-3 text-left">Seat</th>
-                  <th className="px-4 py-3 text-left">Registered Via</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Payments</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {paginatedStudents.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-6 text-center text-sm text-slate-500"
-                    >
-                      No students match the current filters.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedStudents.map((student, index) =>
-                    renderRow(student, index, (page - 1) * PAGE_SIZE)
-                  )
+          {isCompact ? (
+            paginatedStudents.length === 0 ? (
+              <p className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                No students match the current filters.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {paginatedStudents.map((student, index) =>
+                  renderMobileCard(student, index, (page - 1) * PAGE_SIZE)
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            )
+          ) : (
+            <div
+              className="overflow-x-auto rounded-2xl border border-slate-100"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              <table className="min-w-[1100px] w-full table-auto divide-y divide-slate-100 text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">#</th>
+                    <th className="px-4 py-3 text-left">Student</th>
+                    <th className="px-4 py-3 text-left">Contact</th>
+                    <th className="px-4 py-3 text-left">Plan</th>
+                    <th className="px-4 py-3 text-left">Seat</th>
+                    <th className="px-4 py-3 text-left">Registered Via</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Payments</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedStudents.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="px-4 py-6 text-center text-sm text-slate-500"
+                      >
+                        No students match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedStudents.map((student, index) =>
+                      renderDesktopRow(student, index, (page - 1) * PAGE_SIZE)
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <span>
