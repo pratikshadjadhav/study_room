@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useRef,
   lazy,
   Suspense,
 } from "react";
@@ -81,6 +82,9 @@ function App() {
     type: null,
     payload: null,
   });
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState("all");
+  const notificationRef = useRef(null);
   const {
     session,
     isAuthenticated,
@@ -187,6 +191,134 @@ function App() {
   ];
 
   const api = useMemo(() => createApiClient(), []);
+
+  const notifications = useMemo(() => {
+    if (!students.length && !payments.length && !seats.length) return [];
+    const planMap = new Map();
+    plans.forEach((plan) => planMap.set(plan.id, plan));
+    const now = new Date();
+    const weekAhead = new Date();
+    weekAhead.setDate(weekAhead.getDate() + 7);
+    const items = [];
+
+    students.forEach((student) => {
+      if (
+        student.renewal_date &&
+        new Date(student.renewal_date) >= now &&
+        new Date(student.renewal_date) <= weekAhead
+      ) {
+        const planName = planMap.get(student.current_plan_id)?.name ?? "Plan";
+        items.push({
+          id: `renewal-${student.id}`,
+          title: "Renewal reminder",
+          message: `${student.name} • ${planName}`,
+          tone: "warning",
+          category: "renewal",
+          date: new Date(student.renewal_date),
+        });
+      }
+      if (!student.registration_paid) {
+        items.push({
+          id: `reg-${student.id}`,
+          title: "Registration pending",
+          message: `${student.name} still owes registration fee`,
+          tone: "alert",
+          category: "registration",
+          date: student.join_date ? new Date(student.join_date) : now,
+        });
+      }
+      if (student.registration_source === "qr_self") {
+        const joinDate = student.join_date ? new Date(student.join_date) : now;
+        const diffDays = (now - joinDate) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 7) {
+          items.push({
+            id: `qr-${student.id}`,
+            title: "New QR enrollment",
+            message: `${student.name} submitted via onboarding form`,
+            tone: "info",
+            category: "admission",
+            date: joinDate,
+          });
+        }
+      }
+    });
+
+    payments
+      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+      .slice(0, 8)
+      .forEach((payment) => {
+        const student = students.find(
+          (item) => item.id === payment.student_id
+        );
+        items.push({
+          id: `payment-${payment.id}`,
+          title: "Payment recorded",
+          message: `${
+            student ? student.name : "Student"
+          } paid ₹${Number(payment.amount_paid || 0).toLocaleString(
+            "en-IN"
+          )} via ${payment.payment_mode === "upi" ? "UPI" : "Cash"}`,
+          tone: "success",
+          category: "payment",
+          date: payment.payment_date ? new Date(payment.payment_date) : now,
+        });
+      });
+
+    seats
+      .filter((seat) => seat.status === "maintenance")
+      .forEach((seat) => {
+        items.push({
+          id: `seat-${seat.id}`,
+          title: "Seat unavailable",
+          message: `${seat.seat_number} is under maintenance`,
+          tone: "info",
+          category: "seat",
+          date: seat.updated_at ? new Date(seat.updated_at) : now,
+        });
+      });
+
+    return items.sort((a, b) => b.date - a.date).slice(0, 25);
+  }, [students, payments, seats, plans]);
+
+  useEffect(() => {
+    if (!notificationOpen) return;
+    const handleClick = (event) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setNotificationOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", handleClick);
+    return () => window.removeEventListener("mousedown", handleClick);
+  }, [notificationOpen]);
+
+  const formatRelativeTime = (date) => {
+    const diff = Date.now() - date.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const filteredNotifications = notifications.filter((notification) =>
+    notificationFilter === "all"
+      ? true
+      : notification.category === notificationFilter
+  );
+
+  const notificationTabs = [
+    { key: "all", label: "All" },
+    { key: "renewal", label: "Renewals" },
+    { key: "payment", label: "Payments" },
+    { key: "registration", label: "Reg. Fees" },
+    { key: "seat", label: "Seats" },
+    { key: "admission", label: "Admissions" },
+  ];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -794,6 +926,7 @@ function App() {
             students={students}
             seats={seats}
             payments={payments}
+            notifications={notifications}
           />
         )}
         {canAccessView("students") && activeView === "students" && (
@@ -940,9 +1073,118 @@ function App() {
                     />
                   </div> */}
                   <div className="flex items-center gap-2">
-                    <button className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600">
-                      <LucideIcon name="Bell" className="h-4.5 w-4.5" />
-                    </button>
+                    <div className="relative" ref={notificationRef}>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationOpen((prev) => !prev)}
+                        className={`rounded-2xl border border-slate-200 p-2 transition ${
+                          notificationOpen
+                            ? "border-indigo-200 text-indigo-600"
+                            : "text-slate-500 hover:border-indigo-200 hover:text-indigo-600"
+                        }`}
+                        aria-haspopup="true"
+                        aria-expanded={notificationOpen}
+                      >
+                        <LucideIcon name="Bell" className="h-4.5 w-4.5" />
+                        {notifications.length ? (
+                          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+                            {Math.min(notifications.length, 9)}
+                          </span>
+                        ) : null}
+                      </button>
+                      {notificationOpen ? (
+                        <div className="absolute right-0 top-12 z-40 w-80 rounded-3xl border border-slate-100 bg-white shadow-2xl">
+                          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                Notifications
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {notifications.length} total alerts
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setNotificationOpen(false)}
+                              className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto px-4 py-2">
+                            {notificationTabs.map((tab) => (
+                              <button
+                                key={tab.key}
+                                type="button"
+                                onClick={() => setNotificationFilter(tab.key)}
+                                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                                  notificationFilter === tab.key
+                                    ? "bg-indigo-600 text-white"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                {tab.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="max-h-80 overflow-y-auto px-2 py-2">
+                            {filteredNotifications.length === 0 ? (
+                              <p className="px-4 py-6 text-center text-xs text-slate-500">
+                                No notifications in this category.
+                              </p>
+                            ) : (
+                              filteredNotifications.map((notification) => (
+                                <div
+                                  key={notification.id}
+                                  className="flex items-start gap-3 rounded-2xl px-4 py-3 text-sm hover:bg-slate-50"
+                                >
+                                  <span
+                                    className={`mt-1 inline-flex h-8 w-8 items-center justify-center rounded-2xl text-white ${
+                                      notification.tone === "success"
+                                        ? "bg-emerald-500"
+                                        : notification.tone === "warning"
+                                        ? "bg-amber-500"
+                                        : notification.tone === "alert"
+                                        ? "bg-rose-500"
+                                        : "bg-slate-500"
+                                    }`}
+                                  >
+                                    <LucideIcon
+                                      name={
+                                        notification.category === "renewal"
+                                          ? "CalendarClock"
+                                          : notification.category === "payment"
+                                          ? "CreditCard"
+                                          : notification.category === "seat"
+                                          ? "Armchair"
+                                          : notification.category === "admission"
+                                          ? "QrCode"
+                                          : "AlertCircle"
+                                      }
+                                      className="h-4 w-4"
+                                    />
+                                  </span>
+                                  <div className="flex flex-1 flex-col">
+                                    <p className="font-semibold text-slate-900">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400">
+                                      {formatRelativeTime(notification.date)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <div className="border-t border-slate-100 px-4 py-2 text-center text-xs text-slate-500">
+                            Alerts refresh automatically
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                     {/* <button className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600">
                       <LucideIcon name="Settings2" className="h-4.5 w-4.5" />
                     </button> */}

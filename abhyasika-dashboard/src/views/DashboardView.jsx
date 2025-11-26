@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import StatCard from "../components/common/StatCard.jsx";
 import LucideIcon from "../components/icons/LucideIcon.jsx";
 
-function DashboardView({ students, seats, payments }) {
+function DashboardView({ students, seats, payments, notifications = [] }) {
   const today = new Date();
   const weekAhead = new Date();
   weekAhead.setDate(weekAhead.getDate() + 7);
@@ -23,9 +23,6 @@ function DashboardView({ students, seats, payments }) {
     });
     const occupiedSeats = seats.filter((seat) => seat.status === "occupied");
     const availableSeats = seats.filter((seat) => seat.status === "available");
-    const maintenanceSeats = seats.filter(
-      (seat) => seat.status === "maintenance"
-    );
     const recentPayments = [...payments]
       .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
       .slice(0, 5);
@@ -46,65 +43,6 @@ function DashboardView({ students, seats, payments }) {
       return { label, total: dayTotal };
     });
 
-    const notifications = [];
-
-    renewalsDue.slice(0, 4).forEach((student) => {
-      notifications.push({
-        id: `renewal-${student.id}`,
-        title: "Renewal reminder",
-        message: `${student.name} due on ${new Date(
-          student.renewal_date
-        ).toLocaleDateString()}`,
-        type: "warning",
-      });
-    });
-
-    recentPayments.forEach((payment) => {
-      notifications.push({
-        id: `payment-${payment.id}`,
-        title: "Payment received",
-        message: `₹${Number(payment.amount_paid || 0).toLocaleString(
-          "en-IN"
-        )} via ${payment.payment_mode === "upi" ? "UPI" : "Cash"}`,
-        type: "success",
-      });
-    });
-
-    regPending.slice(0, 3).forEach((student) => {
-      notifications.push({
-        id: `reg-${student.id}`,
-        title: "Registration pending",
-        message: `${student.name} has not paid registration fee.`,
-        type: "alert",
-      });
-    });
-
-    maintenanceSeats.slice(0, 3).forEach((seat) => {
-      notifications.push({
-        id: `seat-${seat.id}`,
-        title: "Seat in maintenance",
-        message: `${seat.seat_number} requires attention.`,
-        type: "info",
-      });
-    });
-
-    students
-      .filter((student) => student.registration_source === "qr_self")
-      .filter((student) => {
-        if (!student.join_date) return true;
-        const join = new Date(student.join_date);
-        return (today - join) / (1000 * 60 * 60 * 24) <= 7;
-      })
-      .slice(0, 3)
-      .forEach((student) => {
-        notifications.push({
-          id: `qr-${student.id}`,
-          title: "New QR enrollment",
-          message: `${student.name} submitted via QR`,
-          type: "info",
-        });
-      });
-
     return {
       active,
       monthly,
@@ -113,10 +51,8 @@ function DashboardView({ students, seats, payments }) {
       renewalsDue,
       occupiedSeats,
       availableSeats,
-      maintenanceSeats,
       recentPayments,
       revenueTrend,
-      notifications: notifications.slice(0, 6),
     };
   }, [students, seats, payments]);
 
@@ -359,20 +295,20 @@ function DashboardView({ students, seats, payments }) {
               Notifications
             </h3>
             <span className="text-sm font-medium text-indigo-600">
-              {metrics.notifications.length} alerts
+              {notifications.length} alerts
             </span>
           </div>
           <div className="divide-y divide-slate-100">
-            {metrics.notifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <p className="px-5 py-6 text-sm text-slate-500">
                 Everything looks good. No alerts at the moment.
               </p>
             ) : (
-              metrics.notifications.map((item) => (
+              notifications.slice(0, 6).map((item) => (
                 <div
                   key={item.id}
                   className={`flex items-center justify-between px-5 py-4 text-sm ${notificationTone(
-                    item.type
+                    item.tone
                   )}`}
                 >
                   <div>
@@ -381,13 +317,19 @@ function DashboardView({ students, seats, payments }) {
                   </div>
                   <LucideIcon
                     name={
-                      item.type === "success"
-                        ? "badgeCheck"
-                        : item.type === "warning"
-                        ? "bell"
-                        : item.type === "alert"
-                        ? "alertTriangle"
-                        : "info"
+                      item.category === "renewal"
+                        ? "CalendarClock"
+                        : item.category === "payment"
+                        ? "CreditCard"
+                        : item.category === "seat"
+                        ? "Armchair"
+                        : item.category === "admission"
+                        ? "QrCode"
+                        : item.tone === "alert"
+                        ? "AlertTriangle"
+                        : item.tone === "success"
+                        ? "BadgeCheck"
+                        : "Info"
                     }
                     className="h-4 w-4 opacity-70"
                   />
