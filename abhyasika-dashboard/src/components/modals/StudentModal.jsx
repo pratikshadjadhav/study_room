@@ -16,6 +16,8 @@ const FEE_CYCLES = [
 const SHIFTS = ["Morning", "Afternoon", "Evening", "Day"];
 const GENDERS = ["Male", "Female", "Other"];
 
+const PHOTO_BUCKET = "aadhar_pan";
+
 function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
   const isEdit = Boolean(student);
   const [form, setForm] = useState(() => ({
@@ -56,14 +58,17 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
 
   const assignedSeat = useMemo(
     () => seats.find((seat) => seat.id === student?.current_seat_id),
-    [seats, student]
+    [seats, student?.current_seat_id]
   );
 
   useEffect(() => {
     let active = true;
     async function loadHistory() {
       if (!open || !student?.id) {
-        if (active) setHistory([]);
+        if (active) {
+          setHistory([]);
+          setHistoryLoading(false);
+        }
         return;
       }
       setHistoryLoading(true);
@@ -108,7 +113,51 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
       ? "Rolling 30 days"
       : "Calendar month";
 
-  const handleSubmit = (event) => {
+  const uploadAadhaarPhoto = async (file, existingPath = null) => {
+    if (!file) return existingPath;
+
+    const extension = file.name?.split(".").pop() || "jpg";
+    const uniqueId =
+      (typeof crypto !== "undefined" && crypto.randomUUID?.()) ||
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path =
+      existingPath && existingPath.startsWith("students/")
+        ? existingPath
+        : `students/${uniqueId}.${extension}`;
+
+    console.log("Uploading photo to:", PHOTO_BUCKET, path);
+
+    // Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      throw new Error(uploadError.message ?? "Unable to upload Aadhaar photo. Please check if the storage bucket exists and you have upload permissions.");
+    }
+
+    console.log("Photo uploaded successfully:", uploadData);
+
+    // Generate public URL for the uploaded file
+    const { data: urlData } = supabase.storage
+      .from(PHOTO_BUCKET)
+      .getPublicUrl(path);
+
+    if (!urlData?.publicUrl) {
+      console.warn("Could not generate public URL for uploaded photo. Returning path only.");
+    } else {
+      console.log("Public URL generated:", urlData.publicUrl);
+    }
+
+    return path;
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const phoneDigits = form.phone.replace(/\D/g, "");
     const phoneRegex = /^\d{10}$/;
@@ -173,10 +222,20 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
         return;
       }
     }
+    let photoPath = student?.photo_url ?? null;
+    if (form.attach_aadhaar_photo && form.aadhaar_photo) {
+      try {
+        photoPath = await uploadAadhaarPhoto(form.aadhaar_photo, student?.photo_url);
+      } catch (uploadErr) {
+        alert(uploadErr?.message ?? "Failed to upload Aadhaar photo.");
+        return;
+      }
+    }
+
     const payload = {
       name: form.name.trim(),
       phone: phoneDigits,
-      email: form.email.trim(),
+      email: form.email.trim() || null,
       gender: form.gender,
       aadhaar: aadhaarDigits,
       pan_card: form.pan_card.trim(),
@@ -193,6 +252,7 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
           : null,
       registration_paid: form.registration_paid,
       join_date: form.join_date,
+      photo_url: photoPath,
       initialPayment: form.initialPayment,
     };
 
@@ -362,7 +422,7 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
             </div>
             {form.attach_aadhaar_photo ? (
               <div className="flex flex-col gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-300 transition">
                   <LucideIcon name="Upload" className="h-4 w-4" />
                   <span>
                     {form.aadhaar_photo ? form.aadhaar_photo.name : "Choose file"}
@@ -380,6 +440,23 @@ function StudentModal({ open, onClose, onSubmit, student, plans, seats }) {
                     className="hidden"
                   />
                 </label>
+                {form.aadhaar_photo && (
+                  <div className="relative rounded-xl border border-slate-200 overflow-hidden">
+                    <img
+                      src={URL.createObjectURL(form.aadhaar_photo)}
+                      alt="Aadhaar preview"
+                      className="w-full h-32 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, aadhaar_photo: null }))}
+                      className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition"
+                      aria-label="Remove photo"
+                    >
+                      <LucideIcon name="X" className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs text-slate-500">
                   Upload JPEG, PNG, or WEBP under 2 MB.
                 </p>

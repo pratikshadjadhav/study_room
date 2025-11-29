@@ -149,15 +149,24 @@ function PaymentsView({
             Track revenue split by mode and registration fees.
           </p>
         </div>
-        {canCreatePayment ? (
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => onOpenModal("logPayment")}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+            onClick={() => onOpenModal("importData", { entity: "payments" })}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
           >
-            <LucideIcon name="CreditCard" className="h-4 w-4" />
-            New Payment
+            <LucideIcon name="Upload" className="h-4 w-4" />
+            Import
           </button>
-        ) : null}
+          {canCreatePayment ? (
+            <button
+              onClick={() => onOpenModal("logPayment")}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+            >
+              <LucideIcon name="CreditCard" className="h-4 w-4" />
+              New Payment
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

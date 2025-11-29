@@ -17,8 +17,8 @@ function MobileNav({
   );
   const logoSrc = branding?.logoUrl || "/images/abhyasika-logo.png";
   return (
-    <div className="sticky top-0 z-40 border-b border-white/60 bg-white/90 px-3 py-3 shadow-sm backdrop-blur lg:hidden">
-      <div className="mb-2 flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-3 py-2">
+    <div className="sticky top-0 z-40 border-b border-white/60 bg-white/90 px-3 py-3 shadow-sm backdrop-blur transition-colors duration-300 dark:border-gray-800 dark:bg-gray-950/70 lg:hidden">
+      <div className="mb-2 flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900/70">
         <div className="flex items-center gap-2">
           <img
             src={logoSrc}
@@ -33,7 +33,7 @@ function MobileNav({
         {allowedList.includes("settings") ? (
           <button
             onClick={() => onNavigate("settings")}
-            className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+            className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-700 dark:text-slate-300 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
           >
             <LucideIcon name="Settings2" className="h-3.5 w-3.5" />
           </button>
@@ -48,8 +48,8 @@ function MobileNav({
               onClick={() => onNavigate(item.id)}
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition ${
                 active
-                  ? "border-slate-900 bg-slate-900 text-white shadow"
-                  : "border-slate-200 bg-white/70 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                  ? "border-slate-900 bg-slate-900 text-white shadow dark:border-indigo-400 dark:bg-indigo-500"
+                  : "border-slate-200 bg-white/70 text-slate-600 hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900/70 dark:text-slate-300 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
               }`}
             >
               <LucideIcon name={item.icon} className="h-4 w-4" />

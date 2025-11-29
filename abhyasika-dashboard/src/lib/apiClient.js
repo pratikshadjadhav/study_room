@@ -144,6 +144,7 @@ export function createApiClient() {
         renewal_date: payload.renewal_date ?? null,
         registration_source: payload.registration_source ?? "admin_panel",
         registered_by_role: payload.registered_by_role ?? null,
+        photo_url: payload.photo_url ?? null,
       };
 
       const result = await supabase.from("students").insert(insertPayload).select("*").single();
@@ -488,6 +489,92 @@ export function createApiClient() {
         metadata: { seat_number: seat.seat_number },
       });
       return seat;
+    },
+
+    async importStudents(rows, audit) {
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      const payload = rows.map((row) => ({
+        name: row.name,
+        phone: row.phone,
+        email: row.email || null,
+        gender: row.gender || null,
+        aadhaar: row.aadhaar || null,
+        preferred_shift: row.preferred_shift || "Morning",
+        fee_plan_type: row.fee_plan_type || "monthly",
+        fee_cycle: row.fee_cycle || "calendar",
+        limited_days: row.fee_plan_type === "limited" ? row.limited_days ?? null : null,
+        registration_paid: Boolean(row.registration_paid),
+        join_date: row.join_date ?? normalizedDate(),
+        current_plan_id: row.plan_id || null,
+        current_seat_id: row.seat_id || null,
+        registration_source: "bulk_import",
+        registered_by_role: audit?.actor_role ?? "Importer",
+      }));
+      const result = await supabase.from("students").insert(payload).select("*");
+      return ensureResult(result, "Failed to import students");
+    },
+
+    async importPayments(rows, audit) {
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      const created = [];
+      for (const row of rows) {
+        const { payment, student } = await this.createPayment({
+          student_id: row.student_id,
+          plan_id: row.plan_id,
+          amount_paid: row.amount_paid,
+          valid_from: row.valid_from,
+          valid_until: row.valid_until,
+          payment_mode: row.payment_mode || "upi",
+          includes_registration: Boolean(row.includes_registration),
+          notes: row.notes || null,
+          collected_role_id: row.collected_role_id || null,
+          audit,
+        });
+        created.push({ payment, student });
+      }
+      return created;
+    },
+
+    async importExpenses(rows, audit) {
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+      const payload = rows.map((row) => ({
+        title: row.title,
+        category: row.category || "misc",
+        amount: Number(row.amount) || 0,
+        paid_via: row.paid_via || "cash",
+        expense_date: row.expense_date ?? normalizedDate(),
+        notes: row.notes || null,
+      }));
+      const result = await supabase.from("expenses").insert(payload).select("*");
+      const inserted = ensureResult(result, "Failed to import expenses");
+      if (inserted.length) {
+        await recordAudit({
+          object_type: "expenses",
+          object_id: inserted[0].id,
+          action: "bulk-import",
+          actor_id: audit?.actor_id,
+          actor_role: audit?.actor_role,
+          metadata: { count: inserted.length },
+        });
+      }
+      return inserted;
+    },
+
+    async recordImportLog(entry) {
+      if (!entry) return null;
+      const payload = {
+        table_name: entry.table,
+        file_name: entry.fileName,
+        total_rows: entry.totalRows ?? 0,
+        success_rows: entry.successRows ?? 0,
+        duplicate_rows: entry.duplicateRows ?? 0,
+        invalid_rows: entry.invalidRows ?? 0,
+        created_by: entry.actorId ?? null,
+        actor_role: entry.actorRole ?? null,
+        metadata: entry.metadata ?? {},
+      };
+      const result = await supabase.from("import_logs").insert(payload).select("*").single();
+      return ensureSingle(result, "Failed to log import");
     },
   };
 }

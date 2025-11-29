@@ -674,35 +674,7 @@ function SettingsView({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[32px] border border-transparent bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6 text-white shadow-xl shadow-indigo-100">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-white/60">
-              Control Center
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-              Workspace Settings
-            </h1>
-            <p className="mt-2 text-sm text-white/80">
-              Personalize admissions, automation, and seat operations without leaving the dashboard.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-white/15 px-4 py-3 backdrop-blur">
-            <p className="text-sm font-semibold text-white">
-              {admin?.name || "Admin Workspace"}
-            </p>
-            <p className="text-xs text-white/70">Last synced moments ago</p>
-            <button
-              type="button"
-              onClick={() => toggleSection("profile")}
-              className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-white"
-            >
-              <LucideIcon name="sparkles" className="h-4 w-4" />
-              Update profile
-            </button>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
@@ -710,7 +682,7 @@ function SettingsView({
             label: "Total seats",
             value: seatStats.total,
             icon: "layoutGrid",
-            tone: "from-slate-100 to-slate-50 text-slate-900",
+            tone: "from-slate-100 to-slate-50 text-slate-900 dark:text-slate-100",
             sub: `${seatStats.available} available`,
           },
           {
@@ -746,12 +718,12 @@ function SettingsView({
               <LucideIcon name={card.icon} className="h-4 w-4" />
             </div>
             <p className="mt-3 text-3xl font-semibold">{card.value}</p>
-            <p className="text-xs text-slate-600">{card.sub}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{card.sub}</p>
           </div>
         ))}
       </div>
 
-      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <button
           type="button"
           onClick={() => toggleSection("seat")}
@@ -763,17 +735,17 @@ function SettingsView({
               <LucideIcon name="armchair" className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Seat Configuration
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 Add or label new seats. Maintenance seats are hidden for booking.
               </p>
             </div>
           </div>
           <LucideIcon
             name={openSections.seat ? "ChevronUp" : "ChevronDown"}
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
           />
         </button>
         {openSections.seat ? (
@@ -782,7 +754,7 @@ function SettingsView({
             onSubmit={handleSeatSubmit}
             className="grid gap-3 md:grid-cols-3"
           >
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Seat Number
               <input
                 name="seat_number"
@@ -794,10 +766,10 @@ function SettingsView({
                   }))
                 }
                 placeholder="e.g. B-12"
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               />
             </label>
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Status
               <select
                 name="status"
@@ -808,7 +780,7 @@ function SettingsView({
                     status: event.target.value,
                   }))
                 }
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               >
                 <option value="available">Available</option>
                 <option value="maintenance">Maintenance</option>
@@ -826,13 +798,13 @@ function SettingsView({
           {seatError ? (
             <p className="text-xs font-semibold text-rose-600">{seatError}</p>
           ) : null}
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
+          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-900/60/60 p-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Bulk generate seats
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
                   Creates seats like PREFIX-1, PREFIX-2 in a single click.
                 </p>
               </div>
@@ -846,7 +818,7 @@ function SettingsView({
             >
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-700">Prefix</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Prefix</p>
                   <button
                     type="button"
                     role="switch"
@@ -864,7 +836,7 @@ function SettingsView({
                   >
                     <span className="sr-only">Toggle prefix usage</span>
                     <span
-                      className={`absolute h-4 w-4 rounded-full bg-white shadow transition ${
+                      className={`absolute h-4 w-4 rounded-full bg-white dark:bg-gray-900 shadow transition ${
                         bulkSeatForm.usePrefix ? "translate-x-4" : "translate-x-0.5"
                       }`}
                     />
@@ -881,10 +853,10 @@ function SettingsView({
                   }
                   placeholder="A"
                   disabled={!bulkSeatForm.usePrefix}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  className="rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:text-slate-500"
                 />
               </div>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Start from
                 <input
                   name="start"
@@ -897,10 +869,10 @@ function SettingsView({
                       start: Number(event.target.value),
                     }))
                   }
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Total seats
                 <input
                   name="count"
@@ -913,10 +885,10 @@ function SettingsView({
                       count: Number(event.target.value),
                     }))
                   }
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Status
                 <select
                   name="status"
@@ -927,7 +899,7 @@ function SettingsView({
                       status: event.target.value,
                     }))
                   }
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 >
                   <option value="available">Available</option>
                   <option value="maintenance">Maintenance</option>
@@ -956,12 +928,12 @@ function SettingsView({
               .map((seat) => (
                 <div
                   key={seat.id}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                  className="rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-4 py-3 text-sm text-slate-600 dark:text-slate-300"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {seat.seat_number}
                   </p>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
+                  <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     {seat.status}
                   </p>
                 </div>
@@ -970,7 +942,7 @@ function SettingsView({
         </div>
         ) : null}
       </section>
-      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <button
           type="button"
           onClick={() => toggleSection("categories")}
@@ -982,17 +954,17 @@ function SettingsView({
               <LucideIcon name="Tags" className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Expense Categories
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 Organize expense entries with custom categories.
               </p>
             </div>
           </div>
           <LucideIcon
             name={openSections.categories ? "ChevronUp" : "ChevronDown"}
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
           />
         </button>
         {openSections.categories ? (
@@ -1001,24 +973,24 @@ function SettingsView({
               onSubmit={handleCategorySubmit}
               className="grid gap-3 md:grid-cols-[2fr,1fr,auto]"
             >
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Category Name
                 <input
                   name="name"
                   value={categoryForm.name}
                   onChange={handleCategoryChange}
                   placeholder="e.g. Rent"
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Identifier
                 <input
                   name="value"
                   value={categoryForm.value}
                   onChange={handleCategoryChange}
                   placeholder="rent"
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
               <div className="flex items-end">
@@ -1037,27 +1009,27 @@ function SettingsView({
             ) : null}
             <div className="grid gap-3 md:grid-cols-2">
               {expenseCategories.length === 0 ? (
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <div className="rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                   No categories yet. Create one to tag expenses.
                 </div>
               ) : (
                 expenseCategories.map((category) => (
                   <div
                     key={category.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-2 text-sm text-slate-700"
+                    className="flex items-center justify-between rounded-2xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-2 text-sm text-slate-700 dark:text-slate-200"
                   >
                     <div>
-                      <p className="font-semibold text-slate-900">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">
                         {category.name}
                       </p>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                         {category.value}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleCategoryDelete(category.id)}
-                      className="rounded-full border border-transparent p-1 text-slate-400 transition hover:border-rose-100 hover:text-rose-600"
+                      className="rounded-full border border-transparent p-1 text-slate-400 dark:text-slate-500 transition hover:border-rose-100 hover:text-rose-600"
                       aria-label={`Delete ${category.name}`}
                     >
                       <LucideIcon name="Trash2" className="h-4 w-4" />
@@ -1069,7 +1041,7 @@ function SettingsView({
           </div>
         ) : null}
       </section>
-      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <button
           type="button"
           onClick={() => toggleSection("roles")}
@@ -1081,61 +1053,61 @@ function SettingsView({
               <LucideIcon name="shieldCheck" className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Role Permissions
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 Design who can access each workspace module.
               </p>
             </div>
           </div>
           <LucideIcon
             name={openSections.roles ? "ChevronUp" : "ChevronDown"}
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
           />
         </button>
         {openSections.roles ? (
         <form
           onSubmit={handleRoleSubmit}
-          className="mt-6 space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
+          className="mt-6 space-y-4 rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60/60 p-4"
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Role name
               <input
                 name="name"
                 value={roleForm.name}
                 onChange={handleRoleFieldChange}
                 placeholder="e.g. Front Desk Manager"
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               />
             </label>
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Description
               <input
                 name="description"
                 value={roleForm.description}
                 onChange={handleRoleFieldChange}
                 placeholder="Optional summary"
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               />
             </label>
           </div>
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
               Permissions matrix
             </p>
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
               <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead className="bg-slate-50">
+                <thead className="bg-slate-50 dark:bg-gray-900/60">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       Section
                     </th>
                     {VIEW_ACTIONS.map((action) => (
                       <th
                         key={action}
-                        className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-500"
+                        className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500"
                       >
                         {action}
                       </th>
@@ -1145,7 +1117,7 @@ function SettingsView({
                 <tbody className="divide-y divide-slate-100">
                   {VIEW_DEFINITIONS.map((view) => (
                     <tr key={view.id}>
-                      <td className="px-4 py-2 text-slate-700">{view.label}</td>
+                      <td className="px-4 py-2 text-slate-700 dark:text-slate-200">{view.label}</td>
                       {VIEW_ACTIONS.map((action) => (
                         <td key={action} className="px-4 py-2 text-center">
                           <input
@@ -1167,7 +1139,7 @@ function SettingsView({
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
               View must be enabled before add/edit/delete can be granted.
             </p>
           </div>
@@ -1188,7 +1160,7 @@ function SettingsView({
         {openSections.roles ? (
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {roles.length === 0 ? (
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <div className="rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
               No roles yet. Create one to assign permissions.
             </div>
           ) : (
@@ -1198,26 +1170,26 @@ function SettingsView({
               .map((role) => (
                 <div
                   key={role.id}
-                  className="flex items-start justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm"
+                  className="flex items-start justify-between rounded-2xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {role.name}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       {role.description || "No description"}
                     </p>
-                    <div className="mt-3 overflow-x-auto rounded-xl border border-slate-100">
+                    <div className="mt-3 overflow-x-auto rounded-xl border border-slate-100 dark:border-gray-800">
                       <table className="w-full min-w-[280px] divide-y divide-slate-100 text-xs">
-                        <thead className="bg-slate-50">
+                        <thead className="bg-slate-50 dark:bg-gray-900/60">
                           <tr>
-                            <th className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-slate-500">
+                            <th className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
                               Section
                             </th>
                             {VIEW_ACTIONS.map((action) => (
                               <th
                                 key={action}
-                                className="px-3 py-2 text-center font-semibold uppercase tracking-wide text-slate-500"
+                                className="px-3 py-2 text-center font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500"
                               >
                                 {action}
                               </th>
@@ -1227,7 +1199,7 @@ function SettingsView({
                         <tbody className="divide-y divide-slate-100">
                           {VIEW_DEFINITIONS.map((view) => (
                             <tr key={view.id}>
-                              <td className="px-3 py-2 text-slate-600">
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
                                 {view.label}
                               </td>
                               {VIEW_ACTIONS.map((action) => {
@@ -1242,7 +1214,7 @@ function SettingsView({
                                       className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
                                         enabled
                                           ? "bg-emerald-50 text-emerald-600"
-                                          : "bg-slate-100 text-slate-400"
+                                          : "bg-slate-100 text-slate-400 dark:text-slate-500"
                                       }`}
                                     >
                                       {enabled ? "✓" : "—"}
@@ -1259,7 +1231,7 @@ function SettingsView({
                   <button
                     type="button"
                     onClick={() => handleRoleRemove(role.id)}
-                    className="inline-flex items-center rounded-full border border-transparent p-1 text-slate-400 transition hover:border-rose-100 hover:text-rose-600"
+                    className="inline-flex items-center rounded-full border border-transparent p-1 text-slate-400 dark:text-slate-500 transition hover:border-rose-100 hover:text-rose-600"
                     aria-label={`Remove ${role.name}`}
                   >
                     <LucideIcon name="trash2" className="h-4 w-4" />
@@ -1270,7 +1242,7 @@ function SettingsView({
         </div>
         ) : null}
       </section>
-      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <button
           type="button"
           onClick={() => toggleSection("team")}
@@ -1282,17 +1254,17 @@ function SettingsView({
               <LucideIcon name="users2" className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Team Access
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 Spin up logins manually or send one-click invites tied to roles.
               </p>
             </div>
           </div>
           <LucideIcon
             name={openSections.team ? "ChevronUp" : "ChevronDown"}
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
           />
         </button>
         {openSections.team ? (
@@ -1307,7 +1279,7 @@ function SettingsView({
                 className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-medium transition ${
                   teamForm.mode === option.key
                     ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200"
+                    : "border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-300 hover:border-indigo-200"
                 }`}
               >
                 <input
@@ -1328,17 +1300,17 @@ function SettingsView({
             </p>
           ) : null}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Team member name
               <input
                 name="fullName"
                 value={teamForm.fullName}
                 onChange={handleTeamChange}
                 placeholder="Optional"
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               />
             </label>
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Email
               <input
                 name="email"
@@ -1346,12 +1318,12 @@ function SettingsView({
                 value={teamForm.email}
                 onChange={handleTeamChange}
                 required
-                className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               />
             </label>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                Role 
               <input
                 name="roleName"
@@ -1362,12 +1334,12 @@ function SettingsView({
                     ? "Create a role first"
                     : `e.g. ${roles[0]?.name}`
                 }
-                className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 disabled={roles.length === 0}
               />
             </label>
             {teamForm.mode === "manual" ? (
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Temporary Password
                 <input
                   name="password"
@@ -1375,11 +1347,11 @@ function SettingsView({
                   value={teamForm.password}
                   onChange={handleTeamChange}
                   placeholder="Share securely"
-                  className="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
             ) : (
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <div className="rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
                 The teammate will set their own password from the invite email.
               </div>
             )}
@@ -1418,7 +1390,7 @@ function SettingsView({
       ) : null}
 
       <form onSubmit={handleSave} className="space-y-6">
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
           <button
             type="button"
             onClick={() => toggleSection("profile")}
@@ -1430,58 +1402,58 @@ function SettingsView({
                 <LucideIcon name="users" className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Profile & Workspace
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                   Update the basics that power your admin experience.
                 </p>
               </div>
             </div>
             <LucideIcon
               name={openSections.profile ? "ChevronUp" : "ChevronDown"}
-              className="h-4 w-4 text-slate-500"
+              className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
             />
           </button>
           {openSections.profile ? (
           <div className="mt-6 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Full Name
                 <input
                   name="name"
                   value={profile.name}
                   onChange={handleChange}
-                  className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Email
                 <input
                   name="email"
                   type="email"
                   value={profile.email}
                   onChange={handleChange}
-                  className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Phone
                 <input
                   name="phone"
                   value={profile.phone}
                   onChange={handleChange}
                   placeholder="Optional"
-                  className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
-              <label className="flex flex-col text-sm font-medium text-slate-700">
+              <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
                 Timezone
                 <select
                   name="timezone"
                   value={profile.timezone}
                   onChange={handleChange}
-                  className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 >
                   {timezones.map((tz) => (
                     <option key={tz} value={tz}>
@@ -1491,17 +1463,17 @@ function SettingsView({
                 </select>
               </label>
             </div>
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60/70 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
                   <img
                     src={profile.logoUrl || branding?.logoUrl || "/images/abhyasika-logo.png"}
                     alt="Workspace logo preview"
                     className="h-12 w-12 rounded-lg object-contain"
                   />
                 </div>
-                <div className="text-xs text-slate-500">
-                  <p className="font-semibold text-slate-800">Workspace logo</p>
+                <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">Workspace logo</p>
                   <p>Recommended: square PNG/JPG, under 500KB.</p>
                 </div>
               </div>
@@ -1515,7 +1487,7 @@ function SettingsView({
                 />
                 <label
                   htmlFor="logo-upload-input"
-                  className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600"
+                  className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600"
                 >
                   {logoUploading ? "Uploading..." : "Upload logo"}
                 </label>
@@ -1528,7 +1500,7 @@ function SettingsView({
           ) : null}
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
           <button
             type="button"
             onClick={() => toggleSection("notifications")}
@@ -1540,17 +1512,17 @@ function SettingsView({
                 <LucideIcon name="bell" className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Notifications
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                   Choose what alerts you want to receive.
                 </p>
               </div>
             </div>
             <LucideIcon
               name={openSections.notifications ? "ChevronUp" : "ChevronDown"}
-              className="h-4 w-4 text-slate-500"
+              className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
             />
           </button>
           {openSections.notifications ? (
@@ -1574,10 +1546,10 @@ function SettingsView({
             ].map(({ key, title, desc }) => (
               <label
                 key={key}
-                className="flex cursor-pointer flex-col gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-white"
+                className="flex cursor-pointer flex-col gap-2 rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 transition hover:border-indigo-200 hover:bg-white dark:bg-gray-900"
               >
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-slate-900">{title}</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-100">{title}</p>
                   <input
                     type="checkbox"
                     name={key}
@@ -1586,14 +1558,14 @@ function SettingsView({
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                 </div>
-                <p className="text-xs text-slate-500">{desc}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">{desc}</p>
               </label>
             ))}
           </div>
           ) : null}
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
           <button
             type="button"
             onClick={() => toggleSection("automation")}
@@ -1605,22 +1577,22 @@ function SettingsView({
                 <LucideIcon name="settings" className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Automation Preferences
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
                   Tune auto reminders and export automations.
                 </p>
               </div>
             </div>
             <LucideIcon
               name={openSections.automation ? "ChevronUp" : "ChevronDown"}
-              className="h-4 w-4 text-slate-500"
+              className="h-4 w-4 text-slate-500 dark:text-slate-400 dark:text-slate-500"
             />
           </button>
           {openSections.automation ? (
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <label className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <label className="flex items-center justify-between rounded-2xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
               Auto reminder emails
               <input
                 type="checkbox"
@@ -1630,20 +1602,20 @@ function SettingsView({
                 className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
             </label>
-            <label className="flex flex-col text-sm font-medium text-slate-700">
+            <label className="flex flex-col text-sm font-medium text-slate-700 dark:text-slate-200">
               Auto data export
               <select
                 name="dataExportFrequency"
                 value={profile.dataExportFrequency}
                 onChange={handleChange}
-                className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="mt-1 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               >
                 <option value="daily">Daily summary</option>
                 <option value="weekly">Weekly digest</option>
                 <option value="monthly">Monthly report</option>
               </select>
             </label>
-            <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-indigo-500 to-purple-500 p-4 text-white">
+            <div className="rounded-2xl border border-slate-100 dark:border-gray-800 bg-gradient-to-r from-indigo-500 to-purple-500 p-4 text-white">
               <p className="text-sm font-medium uppercase tracking-wide text-white/80">
                 Automation status
               </p>
@@ -1668,7 +1640,7 @@ function SettingsView({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-white"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 transition hover:border-slate-300 hover:bg-white dark:bg-gray-900"
             onClick={() => setProfile(baseProfile)}
           >
             <LucideIcon name="rotateCcw" className="h-4 w-4" />

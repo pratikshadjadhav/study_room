@@ -148,6 +148,7 @@ function ExpensesView({
   expenses = [],
   onCreateExpense,
   categories = [],
+  onOpenModal = () => {},
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const categoryOptions = useMemo(
@@ -180,13 +181,22 @@ function ExpensesView({
             Track rent, maintenance, cleaning crew, and miscellaneous spends.
           </p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
-        >
-          <LucideIcon name="wallet" className="h-4 w-4" />
-          Add Expense
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onOpenModal?.("importData", { entity: "expenses" })}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+          >
+            <LucideIcon name="upload" className="h-4 w-4" />
+            Import
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+          >
+            <LucideIcon name="wallet" className="h-4 w-4" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

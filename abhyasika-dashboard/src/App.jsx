@@ -11,17 +11,19 @@ import Sidebar from "./components/layout/Sidebar.jsx";
 import MobileNav from "./components/layout/MobileNav.jsx";
 import LoadingState from "./components/common/LoadingState.jsx";
 import ErrorBanner from "./components/common/ErrorBanner.jsx";
-import Toast from "./components/common/Toast.jsx";
 import StudentModal from "./components/modals/StudentModal.jsx";
 import PaymentModal from "./components/modals/PaymentModal.jsx";
 import AssignSeatModal from "./components/modals/AssignSeatModal.jsx";
 import SeatDetailsModal from "./components/modals/SeatDetailsModal.jsx";
+import ImportModal from "./components/modals/ImportModal.jsx";
 import LucideIcon from "./components/icons/LucideIcon.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import LoginView from "./views/LoginView.jsx";
 import { createApiClient } from "./lib/apiClient.js";
 import { VIEW_LABELS, ALL_VIEW_IDS } from "./constants/views.js";
 import { supabase } from "./lib/supabaseBrowser.js";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const DashboardView = lazy(() => import("./views/DashboardView.jsx"));
 const StudentsView = lazy(() => import("./views/StudentsView.jsx"));
@@ -73,7 +75,6 @@ function App() {
   });
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState({ message: "", tone: "success" });
   const [busyIds, setBusyIds] = useState([]);
   const [paymentFilters, setPaymentFilters] = useState(
     INITIAL_PAYMENT_FILTERS
@@ -82,9 +83,11 @@ function App() {
     type: null,
     payload: null,
   });
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notificationFilter, setNotificationFilter] = useState("all");
-  const notificationRef = useRef(null);
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light";
+    return localStorage.getItem("abhyasika-theme") || "light";
+  });
   const {
     session,
     isAuthenticated,
@@ -105,47 +108,68 @@ function App() {
     () => (Array.isArray(rawRoleIds) ? rawRoleIds : []),
     [Array.isArray(rawRoleIds) ? rawRoleIds.join(",") : ""]
   );
+  const [notificationOpen, setNotificationOpen] = useState(false);
+const [notificationFilter, setNotificationFilter] = useState("all");
+const notificationRef = useRef(null);
 
+
+  // OPTIMIZED: Fixed route listener - "pushstate" and "replacestate" don't exist as events
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const handleRoute = () => {
       setIsOnboardingPage(window.location.pathname === "/onboarding");
     };
+
+    // Only "popstate" exists as a standard event
     window.addEventListener("popstate", handleRoute);
-    window.addEventListener("pushstate", handleRoute);
-    window.addEventListener("replacestate", handleRoute);
+
     return () => {
       window.removeEventListener("popstate", handleRoute);
-      window.removeEventListener("pushstate", handleRoute);
-      window.removeEventListener("replacestate", handleRoute);
     };
   }, []);
 
+  // OPTIMIZED: Compute heroMetrics more efficiently with early returns
   const heroMetrics = useMemo(() => {
     const now = new Date();
-    const activeStudents = students.filter((student) => student.is_active).length;
-    const occupiedSeats = seats.filter((seat) => seat.status === "occupied").length;
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Count active students in single pass
+    let activeStudents = 0;
+    let upcomingRenewals = 0;
+
+    for (const student of students) {
+      if (student.is_active) activeStudents++;
+
+      if (student.renewal_date) {
+        const due = new Date(student.renewal_date);
+        const diffDays = (due - now) / (1000 * 60 * 60 * 24);
+        if (diffDays >= 0 && diffDays <= 7) upcomingRenewals++;
+      }
+    }
+
+    // Count occupied seats in single pass
+    let occupiedSeats = 0;
+    for (const seat of seats) {
+      if (seat.status === "occupied") occupiedSeats++;
+    }
+
     const availableSeats = Math.max(seats.length - occupiedSeats, 0);
     const seatUtilization = seats.length
       ? Math.round((occupiedSeats / seats.length) * 100)
       : 0;
-    const revenueThisMonth = payments.reduce((sum, payment) => {
-      if (!payment.payment_date) return sum;
+
+    // Calculate revenue for current month in single pass
+    let revenueThisMonth = 0;
+    for (const payment of payments) {
+      if (!payment.payment_date) continue;
       const paidAt = new Date(payment.payment_date);
-      if (
-        paidAt.getMonth() === now.getMonth() &&
-        paidAt.getFullYear() === now.getFullYear()
-      ) {
-        return sum + Number(payment.amount_paid || 0);
+      if (paidAt.getMonth() === currentMonth && paidAt.getFullYear() === currentYear) {
+        revenueThisMonth += Number(payment.amount_paid || 0);
       }
-      return sum;
-    }, 0);
-    const upcomingRenewals = students.filter((student) => {
-      if (!student.renewal_date) return false;
-      const due = new Date(student.renewal_date);
-      const diffDays = (due - now) / (1000 * 60 * 60 * 24);
-      return diffDays >= 0 && diffDays <= 7;
-    }).length;
+    }
+
     return {
       activeStudents,
       availableSeats,
@@ -161,6 +185,18 @@ function App() {
       roles.find((role) => assignedRoleIds.includes(role.id))?.name ?? null;
     return { actor_id, actor_role };
   }, [session?.user?.id, admin?.id, roles, assignedRoleIds]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("abhyasika-theme", theme);
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    root.style.setProperty("color-scheme", theme === "dark" ? "dark" : "light");
+  }, [theme]);
 
   const headerHighlights = [
     {
@@ -192,107 +228,155 @@ function App() {
 
   const api = useMemo(() => createApiClient(), []);
 
-  const notifications = useMemo(() => {
-    if (!students.length && !payments.length && !seats.length) return [];
-    const planMap = new Map();
-    plans.forEach((plan) => planMap.set(plan.id, plan));
-    const now = new Date();
-    const weekAhead = new Date();
-    weekAhead.setDate(weekAhead.getDate() + 7);
-    const items = [];
+  // OPTIMIZED: Separate notification calculations for better memoization
+  const planMap = useMemo(
+    () => new Map(plans.map(p => [p.id, p])),
+    [plans]
+  );
 
-    students.forEach((student) => {
-      if (
-        student.renewal_date &&
-        new Date(student.renewal_date) >= now &&
-        new Date(student.renewal_date) <= weekAhead
-      ) {
-        const planName = planMap.get(student.current_plan_id)?.name ?? "Plan";
-        items.push({
-          id: `renewal-${student.id}`,
-          title: "Renewal reminder",
-          message: `${student.name} • ${planName}`,
-          tone: "warning",
-          category: "renewal",
-          date: new Date(student.renewal_date),
-        });
-      }
-      if (!student.registration_paid) {
-        items.push({
-          id: `reg-${student.id}`,
-          title: "Registration pending",
-          message: `${student.name} still owes registration fee`,
-          tone: "alert",
-          category: "registration",
-          date: student.join_date ? new Date(student.join_date) : now,
-        });
-      }
-      if (student.registration_source === "qr_self") {
+  const studentMap = useMemo(
+    () => new Map(students.map(s => [s.id, s])),
+    [students]
+  );
+
+  const renewalNotifications = useMemo(() => {
+    if (students.length === 0) return [];
+    const now = new Date();
+    const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return students
+      .filter(student => {
+        if (!student.renewal_date) return false;
+        const due = new Date(student.renewal_date);
+        return due >= now && due <= weekAhead;
+      })
+      .map(student => ({
+        id: `renewal-${student.id}`,
+        title: "Renewal reminder",
+        message: `${student.name} - ${planMap.get(student.current_plan_id)?.name ?? 'Plan'}`,
+        tone: "warning",
+        category: "renewal",
+        date: new Date(student.renewal_date),
+      }));
+  }, [students, planMap]);
+
+  const registrationNotifications = useMemo(() => {
+    if (students.length === 0) return [];
+    const now = new Date();
+
+    return students
+      .filter(student => !student.registration_paid)
+      .map(student => ({
+        id: `reg-${student.id}`,
+        title: "Registration pending",
+        message: `${student.name} still owes registration fee`,
+        tone: "alert",
+        category: "registration",
+        date: student.join_date ? new Date(student.join_date) : now,
+      }));
+  }, [students]);
+
+  const qrEnrollmentNotifications = useMemo(() => {
+    if (students.length === 0) return [];
+    const now = new Date();
+
+    return students
+      .filter(student => {
+        if (student.registration_source !== "qr_self") return false;
         const joinDate = student.join_date ? new Date(student.join_date) : now;
         const diffDays = (now - joinDate) / (1000 * 60 * 60 * 24);
-        if (diffDays <= 7) {
-          items.push({
-            id: `qr-${student.id}`,
-            title: "New QR enrollment",
-            message: `${student.name} submitted via onboarding form`,
-            tone: "info",
-            category: "admission",
-            date: joinDate,
-          });
-        }
-      }
-    });
+        return diffDays <= 7;
+      })
+      .map(student => ({
+        id: `qr-${student.id}`,
+        title: "New QR enrollment",
+        message: `${student.name} submitted via onboarding form`,
+        tone: "info",
+        category: "admission",
+        date: student.join_date ? new Date(student.join_date) : now,
+      }));
+  }, [students]);
 
-    payments
+  const paymentNotifications = useMemo(() => {
+    if (payments.length === 0) return [];
+    const now = new Date();
+
+    // OPTIMIZED: Sort once and take top 8
+    const recentPayments = [...payments]
       .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
-      .slice(0, 8)
-      .forEach((payment) => {
-        const student = students.find(
-          (item) => item.id === payment.student_id
-        );
-        items.push({
-          id: `payment-${payment.id}`,
-          title: "Payment recorded",
-          message: `${
-            student ? student.name : "Student"
-          } paid ₹${Number(payment.amount_paid || 0).toLocaleString(
-            "en-IN"
-          )} via ${payment.payment_mode === "upi" ? "UPI" : "Cash"}`,
-          tone: "success",
-          category: "payment",
-          date: payment.payment_date ? new Date(payment.payment_date) : now,
-        });
-      });
+      .slice(0, 8);
 
-    seats
-      .filter((seat) => seat.status === "maintenance")
-      .forEach((seat) => {
-        items.push({
-          id: `seat-${seat.id}`,
-          title: "Seat unavailable",
-          message: `${seat.seat_number} is under maintenance`,
-          tone: "info",
-          category: "seat",
-          date: seat.updated_at ? new Date(seat.updated_at) : now,
-        });
-      });
+    return recentPayments.map(payment => {
+      const student = studentMap.get(payment.student_id);
+      return {
+        id: `payment-${payment.id}`,
+        title: "Payment recorded",
+        message: `${
+          student ? student.name : "Student"
+        } paid ₹${Number(payment.amount_paid || 0).toLocaleString(
+          "en-IN"
+        )} via ${payment.payment_mode === "upi" ? "UPI" : "Cash"}`,
+        tone: "success",
+        category: "payment",
+        date: payment.payment_date ? new Date(payment.payment_date) : now,
+      };
+    });
+  }, [payments, studentMap]);
+
+  const seatMaintenanceNotifications = useMemo(() => {
+    if (seats.length === 0) return [];
+    const now = new Date();
+
+    return seats
+      .filter(seat => seat.status === "maintenance")
+      .map(seat => ({
+        id: `seat-${seat.id}`,
+        title: "Seat unavailable",
+        message: `${seat.seat_number} is under maintenance`,
+        tone: "info",
+        category: "seat",
+        date: seat.updated_at ? new Date(seat.updated_at) : now,
+      }));
+  }, [seats]);
+
+  const notifications = useMemo(() => {
+    const items = [
+      ...renewalNotifications,
+      ...registrationNotifications,
+      ...qrEnrollmentNotifications,
+      ...paymentNotifications,
+      ...seatMaintenanceNotifications,
+    ];
 
     return items.sort((a, b) => b.date - a.date).slice(0, 25);
-  }, [students, payments, seats, plans]);
+  }, [
+    renewalNotifications,
+    registrationNotifications,
+    qrEnrollmentNotifications,
+    paymentNotifications,
+    seatMaintenanceNotifications,
+  ]);
+
+  // OPTIMIZED: Use useCallback to stabilize event handler and prevent memory leaks
+  const handleNotificationClickOutside = useCallback((event) => {
+    if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      setNotificationOpen(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!notificationOpen) return;
-    const handleClick = (event) => {
-      if (
-        notificationRef.current &&
-        !notificationRef.current.contains(event.target)
-      ) {
-        setNotificationOpen(false);
-      }
+
+    // Small delay to avoid immediate close on button click
+    const timeoutId = setTimeout(() => {
+      window.addEventListener("mousedown", handleNotificationClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("mousedown", handleNotificationClickOutside);
     };
-    window.addEventListener("mousedown", handleClick);
-    return () => window.removeEventListener("mousedown", handleClick);
-  }, [notificationOpen]);
+  }, [notificationOpen, handleNotificationClickOutside]);
 
   const formatRelativeTime = (date) => {
     const diff = Date.now() - date.getTime();
@@ -319,6 +403,9 @@ function App() {
     { key: "seat", label: "Seats" },
     { key: "admission", label: "Admissions" },
   ];
+
+  const toggleTheme = () =>
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -387,7 +474,6 @@ function App() {
     setModalState({ type: null, payload: null });
     setBusyIds([]);
     setPaymentFilters(INITIAL_PAYMENT_FILTERS);
-    setToast({ message: "", tone: "success" });
     setError("");
   }, [isAuthenticated]);
 
@@ -496,21 +582,50 @@ function App() {
     setModalState({ type: null, payload: null });
   };
 
-  const showToast = (message, tone = "success") =>
-    setToast({ message, tone });
+  const showToast = useCallback(
+    (message, tone = "success") => {
+      const options = {
+        position: "top-right",
+        theme: theme === "dark" ? "dark" : "light",
+      };
+      switch (tone) {
+        case "error":
+          toast.error(message, options);
+          break;
+        case "warning":
+          toast.warn(message, options);
+          break;
+        case "info":
+          toast.info(message, options);
+          break;
+        default:
+          toast.success(message, options);
+      }
+    },
+    [theme]
+  );
+
+  const toastContainer = (
+    <ToastContainer
+      position="top-right"
+      autoClose={3200}
+      newestOnTop
+      closeOnClick
+      pauseOnHover
+      draggable
+      theme={theme === "dark" ? "dark" : "light"}
+    />
+  );
 
   const navigateTo = useCallback(
     (viewId) => {
       if (!normalizedAllowedViews.includes(viewId)) {
-        setToast({
-          message: "You do not have access to that section.",
-          tone: "warning",
-        });
+        showToast("You do not have access to that section.", "warning");
         return;
       }
       setActiveView(viewId);
     },
-    [normalizedAllowedViews]
+    [normalizedAllowedViews, showToast]
   );
 
   const handleCreateStudent = async (formData) => {
@@ -553,7 +668,9 @@ function App() {
       showToast("Student added successfully.");
       closeModal();
     } catch (err) {
-      setError(err.message ?? "Failed to create student.");
+      const message = err.message ?? "Failed to create student.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -569,7 +686,9 @@ function App() {
       showToast("Student details updated.");
       closeModal();
     } catch (err) {
-      setError(err.message ?? "Failed to update student.");
+      const message = err.message ?? "Failed to update student.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -585,7 +704,9 @@ function App() {
         updated.is_active ? "Student reactivated." : "Student deactivated."
       );
     } catch (err) {
-      setError(err.message ?? "Failed to update student status.");
+      const message = err.message ?? "Failed to update student status.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setBusyIds((prev) => prev.filter((id) => id !== studentId));
     }
@@ -608,7 +729,9 @@ function App() {
       showToast("Seat assigned successfully.");
       closeModal();
     } catch (err) {
-      setError(err.message ?? "Failed to assign seat.");
+      const message = err.message ?? "Failed to assign seat.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -627,7 +750,9 @@ function App() {
       showToast("Seat deallocated.");
       closeModal();
     } catch (err) {
-      setError(err.message ?? "Unable to deallocate seat.");
+      const message = err.message ?? "Unable to deallocate seat.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -645,7 +770,9 @@ function App() {
       showToast("Payment recorded successfully.");
       closeModal();
     } catch (err) {
-      setError(err.message ?? "Failed to record payment.");
+      const message = err.message ?? "Failed to record payment.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -656,7 +783,9 @@ function App() {
       setExpenses((prev) => [expense, ...prev]);
       showToast("Expense logged.");
     } catch (err) {
-      setError(err.message ?? "Failed to log expense.");
+      const message = err.message ?? "Failed to log expense.";
+      setError(message);
+      showToast(message, "error");
     }
   };
 
@@ -670,7 +799,9 @@ function App() {
       showToast("Category added.");
       return category;
     } catch (err) {
-      setError(err.message ?? "Failed to add category.");
+      const message = err.message ?? "Failed to add category.";
+      setError(message);
+      showToast(message, "error");
       throw err;
     }
   };
@@ -682,9 +813,74 @@ function App() {
       setExpenseCategories((prev) => prev.filter((item) => item.id !== categoryId));
       showToast("Category removed.");
     } catch (err) {
-      setError(err.message ?? "Failed to remove category.");
+      const message = err.message ?? "Failed to remove category.";
+      setError(message);
+      showToast(message, "error");
       throw err;
     }
+  };
+
+  const handleImportData = async ({ entity, rows, fileName, stats }) => {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw new Error("No valid rows to import.");
+      }
+      const audit = getAuditContext();
+      let insertedCount = 0;
+      try {
+        if (entity === "students") {
+          const inserted = await api.importStudents(rows, audit);
+          insertedCount = inserted.length;
+          if (insertedCount) {
+            setStudents((prev) =>
+              [...prev, ...inserted].sort((a, b) => a.name.localeCompare(b.name))
+            );
+          }
+        } else if (entity === "payments") {
+          const created = await api.importPayments(rows, audit);
+          insertedCount = created.length;
+          if (insertedCount) {
+            const newPayments = created.map((item) => item.payment);
+            setPayments((prev) => [...newPayments, ...prev]);
+            const updatedStudents = created
+              .map((item) => item.student)
+              .filter(Boolean);
+            if (updatedStudents.length) {
+              setStudents((prev) =>
+                prev.map((student) => {
+                  const updated = updatedStudents.find((item) => item.id === student.id);
+                  return updated || student;
+                })
+              );
+            }
+          }
+        } else if (entity === "expenses") {
+          const inserted = await api.importExpenses(rows, audit);
+          insertedCount = inserted.length;
+          if (insertedCount) {
+            setExpenses((prev) => [...inserted, ...prev]);
+          }
+        } else {
+          throw new Error("Unsupported import type.");
+        }
+
+        await api.recordImportLog({
+          table: entity,
+          fileName,
+          totalRows: stats.total,
+          successRows: insertedCount,
+          duplicateRows: stats.duplicates,
+          invalidRows: stats.invalid,
+          actorId: audit.actor_id,
+          actorRole: audit.actor_role,
+        });
+        showToast(`Imported ${insertedCount} ${entity}.`);
+    } catch (err) {
+      const message = err.message ?? "Import failed.";
+      setError(message);
+      showToast(message, "error");
+      throw err;
+    }
+    return insertedCount;
   };
 
   const handleCreateSeatRecord = async (payload) => {
@@ -695,7 +891,9 @@ function App() {
       showToast("Seat added to layout.");
       return seat;
     } catch (err) {
-      setError(err.message ?? "Failed to add seat.");
+      const message = err.message ?? "Failed to add seat.";
+      setError(message);
+      showToast(message, "error");
       throw err;
     }
   };
@@ -755,11 +953,12 @@ function App() {
         setSeats((prev) => [...prev, ...created]);
       }
       const baseMessage = err?.message ?? "Failed to add seats.";
-      setError(baseMessage);
       const message =
         created.length > 0
           ? `Added ${created.length} seats but stopped early: ${baseMessage}`
           : baseMessage;
+      setError(baseMessage);
+      showToast(message, "error");
       throw new Error(message);
     }
   };
@@ -852,6 +1051,23 @@ function App() {
           seat={payload.seat}
           student={payload.student}
           onDeallocate={() => handleDeallocateSeat(payload.seat.id)}
+        />
+      );
+    }
+
+    if (type === "importData") {
+      return (
+        <ImportModal
+          open
+          onClose={closeModal}
+          entity={payload?.entity ?? "students"}
+          students={students}
+          plans={plans}
+          payments={payments}
+          expenses={expenses}
+          seats={seats}
+          categories={expenseCategories}
+          onImport={handleImportData}
         />
       );
     }
@@ -987,6 +1203,7 @@ function App() {
             expenses={expenses}
             categories={expenseCategories}
             onCreateExpense={handleCreateExpense}
+            onOpenModal={openModal}
           />
         )}
         {canAccessView("settings") && activeView === "settings" && (
@@ -1008,26 +1225,39 @@ function App() {
 
   if (isOnboardingPage) {
     return (
-      <Suspense fallback={<LoadingState message="Loading enrollment form…" />}>
-        <OnboardingPage />
-      </Suspense>
+      <>
+        <Suspense fallback={<LoadingState message="Loading enrollment form…" />}>
+          <OnboardingPage />
+        </Suspense>
+        {toastContainer}
+      </>
     );
   }
 
-  
+
   if (authInitializing) {
-    return <LoadingState message="Checking admin session…" />;
+    return (
+      <>
+        <LoadingState message="Checking admin session…" />
+        {toastContainer}
+      </>
+    );
   }
 
   if (!isAuthenticated) {
-    return <LoginView />;
+    return (
+      <>
+        <LoginView />
+        {toastContainer}
+      </>
+    );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-transparent">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-24 top-10 h-72 w-72 rounded-full bg-indigo-100 blur-3xl" />
-        <div className="absolute bottom-10 right-10 h-80 w-80 rounded-full bg-pink-100 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300 ease-in-out dark:bg-gray-950 dark:text-slate-100">
+      <div className="pointer-events-none absolute inset-0 transition-opacity duration-300">
+        <div className="absolute left-24 top-10 h-72 w-72 rounded-full bg-indigo-100/70 blur-3xl dark:bg-indigo-900/40" />
+        <div className="absolute bottom-10 right-10 h-80 w-80 rounded-full bg-pink-100/70 blur-3xl dark:bg-pink-900/40" />
       </div>
       <div className="relative flex min-h-screen">
         <Sidebar
@@ -1045,11 +1275,11 @@ function App() {
             branding={branding}
             allowedViews={normalizedAllowedViews}
           />
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-6 rounded-3xl border border-white/70 bg-white px-5 py-5 shadow-2xl shadow-indigo-100/60">
-              <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+          <main className="flex-1 px-4 py-6 transition-colors duration-300 sm:px-6 lg:px-8">
+            <div className="mb-6 rounded-3xl border border-white/70 bg-white/95 px-5 py-5 shadow-2xl shadow-indigo-100/60 backdrop-blur transition-colors duration-300 dark:border-gray-800/80 dark:bg-gray-900/80 dark:shadow-black/40">
+              <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 transition-colors duration-300 dark:border-gray-800 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow dark:bg-indigo-500">
                     <LucideIcon name="GraduationCap" className="h-5 w-5" />
                   </div>
                   <div>
@@ -1072,19 +1302,19 @@ function App() {
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                     />
                   </div> */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative" ref={notificationRef}>
-                      <button
-                        type="button"
-                        onClick={() => setNotificationOpen((prev) => !prev)}
-                        className={`rounded-2xl border border-slate-200 p-2 transition ${
-                          notificationOpen
-                            ? "border-indigo-200 text-indigo-600"
-                            : "text-slate-500 hover:border-indigo-200 hover:text-indigo-600"
-                        }`}
-                        aria-haspopup="true"
-                        aria-expanded={notificationOpen}
-                      >
+                    <div className="flex items-center gap-2">
+                      <div className="relative" ref={notificationRef}>
+                        <button
+                          type="button"
+                          onClick={() => setNotificationOpen((prev) => !prev)}
+                          className={`rounded-2xl border border-slate-200 bg-white/80 p-2 text-slate-500 transition-colors duration-200 dark:border-gray-700 dark:bg-gray-900/60 dark:text-slate-300 ${
+                            notificationOpen
+                              ? "border-indigo-200 text-indigo-600 dark:border-indigo-500 dark:text-indigo-200"
+                              : "hover:border-indigo-200 hover:text-indigo-600 dark:hover:border-indigo-500 dark:hover:text-indigo-200"
+                          }`}
+                          aria-haspopup="true"
+                          aria-expanded={notificationOpen}
+                        >
                         <LucideIcon name="Bell" className="h-4.5 w-4.5" />
                         {notifications.length ? (
                           <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
@@ -1093,20 +1323,20 @@ function App() {
                         ) : null}
                       </button>
                       {notificationOpen ? (
-                        <div className="absolute right-0 top-12 z-40 w-80 rounded-3xl border border-slate-100 bg-white shadow-2xl">
-                          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                        <div className="absolute right-0 top-12 z-40 w-80 rounded-3xl border border-slate-100 bg-white/95 shadow-2xl shadow-indigo-200/50 backdrop-blur dark:border-gray-800 dark:bg-gray-900">
+                          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-gray-800">
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white">
                                 Notifications
                               </p>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {notifications.length} total alerts
                               </p>
                             </div>
                             <button
                               type="button"
                               onClick={() => setNotificationOpen(false)}
-                              className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                              className="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white"
                             >
                               Close
                             </button>
@@ -1119,8 +1349,8 @@ function App() {
                                 onClick={() => setNotificationFilter(tab.key)}
                                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                   notificationFilter === tab.key
-                                    ? "bg-indigo-600 text-white"
-                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    ? "bg-indigo-600 text-white dark:bg-indigo-500/80"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-gray-800 dark:text-slate-300 dark:hover:bg-gray-700"
                                 }`}
                               >
                                 {tab.label}
@@ -1129,14 +1359,14 @@ function App() {
                           </div>
                           <div className="max-h-80 overflow-y-auto px-2 py-2">
                             {filteredNotifications.length === 0 ? (
-                              <p className="px-4 py-6 text-center text-xs text-slate-500">
+                              <p className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                                 No notifications in this category.
                               </p>
                             ) : (
                               filteredNotifications.map((notification) => (
                                 <div
                                   key={notification.id}
-                                  className="flex items-start gap-3 rounded-2xl px-4 py-3 text-sm hover:bg-slate-50"
+                                  className="flex items-start gap-3 rounded-2xl px-4 py-3 text-sm transition-colors duration-200 hover:bg-slate-50 dark:hover:bg-gray-800"
                                 >
                                   <span
                                     className={`mt-1 inline-flex h-8 w-8 items-center justify-center rounded-2xl text-white ${
@@ -1165,13 +1395,13 @@ function App() {
                                     />
                                   </span>
                                   <div className="flex flex-1 flex-col">
-                                    <p className="font-semibold text-slate-900">
+                                    <p className="font-semibold text-slate-900 dark:text-white">
                                       {notification.title}
                                     </p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
                                       {notification.message}
                                     </p>
-                                    <p className="text-[11px] text-slate-400">
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
                                       {formatRelativeTime(notification.date)}
                                     </p>
                                   </div>
@@ -1179,17 +1409,28 @@ function App() {
                               ))
                             )}
                           </div>
-                          <div className="border-t border-slate-100 px-4 py-2 text-center text-xs text-slate-500">
+                          <div className="border-t border-slate-100 px-4 py-2 text-center text-xs text-slate-500 dark:border-gray-800 dark:text-slate-400">
                             Alerts refresh automatically
                           </div>
                         </div>
                       ) : null}
                     </div>
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
+                      aria-label="Toggle theme"
+                    >
+                      <LucideIcon
+                        name={theme === "dark" ? "Sun" : "Moon"}
+                        className="h-4.5 w-4.5"
+                      />
+                    </button>
                     {/* <button className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-600">
                       <LucideIcon name="Settings2" className="h-4.5 w-4.5" />
                     </button> */}
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-1.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-1.5 transition-colors duration-200 dark:border-gray-700 dark:bg-gray-900/40">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white dark:bg-gray-700">
                         {(admin?.name || admin?.email || "AA").charAt(0).toUpperCase()}
                       </div>
                       {/* <div className="hidden text-left text-xs font-medium text-slate-500 sm:block">
@@ -1201,7 +1442,7 @@ function App() {
                     </div>
                     <button
                       onClick={logout}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:text-slate-300 dark:hover:border-rose-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-200"
                     >
                       <LucideIcon name="Power" className="h-4.5 w-4.5" />
                      
@@ -1261,21 +1502,23 @@ function App() {
                   </button>
                 </div>
               </div> */}
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mt-2">
+              <div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {headerHighlights.map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800/80"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-700 dark:bg-gray-900 dark:text-indigo-200">
                         <LucideIcon name={stat.icon} className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-400">
+                        <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-400">
                           {stat.label}
                         </p>
-                        <p className="text-lg font-semibold text-slate-900">{stat.value}</p>
+                        <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                          {stat.value}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1286,11 +1529,7 @@ function App() {
           </main>
         </div>
         {renderModal()}
-        <Toast
-          message={toast.message}
-          onClear={() => setToast({ message: "", tone: "success" })}
-          tone={toast.tone}
-        />
+        {toastContainer}
       </div>
     </div>
   );

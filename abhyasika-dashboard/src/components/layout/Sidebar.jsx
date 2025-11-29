@@ -19,8 +19,8 @@ function Sidebar({
   );
   const logoSrc = branding?.logoUrl || "/images/abhyasika-logo.png";
   return (
-    <aside className="relative hidden w-64 flex-none bg-white/60 px-5 py-6 shadow-2xl shadow-indigo-100/70 backdrop-blur-2xl lg:flex">
-      <div className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-gradient-to-b from-indigo-100/70 via-white/60 to-white" />
+    <aside className="relative hidden w-64 flex-none bg-white/70 px-5 py-6 shadow-2xl shadow-indigo-100/70 backdrop-blur-2xl transition-colors duration-300 dark:bg-gray-900/80 dark:text-slate-100 dark:shadow-black/50 lg:flex">
+      <div className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-gradient-to-b from-indigo-100/70 via-white/70 to-white dark:from-gray-900/80 dark:via-gray-900/60 dark:to-gray-950/80" />
       <div className="flex h-full flex-col">
         <div className="">
           <div className="mx-auto bg-gradient-to-br flex h-12 w-15 items-center justify-center rounded-3xl ">
@@ -46,17 +46,17 @@ function Sidebar({
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`group relative flex w-full items-center gap-3 rounded-2xl px-2 py-3 text-left transition ${
+                className={`group relative flex w-full items-center gap-3 rounded-2xl px-2 py-3 text-left transition-colors duration-200 ${
                   active
                     ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/30"
-                    : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
+                    : "text-slate-500 hover:bg-white/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-gray-800/80 dark:hover:text-white"
                 }`}
               >
                 <div
-                  className={`flex h-6 w-8 items-center justify-center rounded-xl  text-sm transition ${
+                  className={`flex h-6 w-8 items-center justify-center rounded-xl text-sm transition ${
                     active
                       ? "border-white/30 bg-white/20 text-white"
-                      : "border-slate-200 bg-white text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600"
+                      : "border-slate-200 bg-white text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-300 dark:group-hover:border-indigo-500 dark:group-hover:text-indigo-300"
                   }`}
                 >
                   <LucideIcon name={item.icon} className="h-4 w-4" strokeWidth={2} />
