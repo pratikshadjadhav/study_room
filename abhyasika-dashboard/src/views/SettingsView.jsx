@@ -682,43 +682,43 @@ function SettingsView({
             label: "Total seats",
             value: seatStats.total,
             icon: "layoutGrid",
-            tone: "from-slate-100 to-slate-50 text-slate-900 dark:text-slate-100",
+            tone: "from-slate-100 to-slate-50 text-slate-900 dark:from-gray-800 dark:to-gray-800/50 dark:text-slate-100",
             sub: `${seatStats.available} available`,
           },
           {
             label: "Maintenance",
             value: seatStats.maintenance,
             icon: "wrench",
-            tone: "from-amber-100 to-orange-50 text-amber-800",
+            tone: "from-amber-100 to-orange-50 text-amber-800 dark:from-amber-900/40 dark:to-amber-900/20 dark:text-amber-100",
             sub: "Temporarily offline",
           },
           {
             label: "Active roles",
             value: roles.length,
             icon: "shieldCheck",
-            tone: "from-emerald-100 to-emerald-50 text-emerald-800",
+            tone: "from-emerald-100 to-emerald-50 text-emerald-800 dark:from-emerald-900/40 dark:to-emerald-900/20 dark:text-emerald-100",
             sub: "Team permission sets",
           },
           {
             label: "Expense tags",
             value: expenseCategories.length,
             icon: "tag",
-            tone: "from-sky-100 to-sky-50 text-sky-800",
+            tone: "from-sky-100 to-sky-50 text-sky-800 dark:from-sky-900/40 dark:to-sky-900/20 dark:text-sky-100",
             sub: "Classified categories",
           },
         ].map((card) => (
           <div
             key={card.label}
-            className={`rounded-2xl border border-white/70 bg-gradient-to-br ${card.tone} p-4 shadow-sm`}
+            className={`rounded-2xl border border-white/70 dark:border-gray-800 bg-gradient-to-br ${card.tone} p-4 shadow-sm`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide">
+              <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
                 {card.label}
               </p>
               <LucideIcon name={card.icon} className="h-4 w-4" />
             </div>
             <p className="mt-3 text-3xl font-semibold">{card.value}</p>
-            <p className="text-xs text-slate-600 dark:text-slate-300">{card.sub}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300 opacity-90">{card.sub}</p>
           </div>
         ))}
       </div>
